@@ -1,3 +1,4 @@
+import 'package:echopay/components/utils.dart';
 import 'package:echopay/pages/auth/otp_verification_page.dart';
 import 'package:echopay/services/data/user_data_service.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,7 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
     }
 
     try {
+      Utils.showLoading(context);
       await _userDataService.verifyPhoneNumber(
         phoneNumber: fullPhoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
@@ -50,6 +52,7 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
           _showMessage("Phone number automatically verified!");
           if (mounted) {
             _isLoadingNotifier.value = false;
+            Utils.hideLoading();
           }
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -57,6 +60,7 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
           _showMessage("Verification failed: ${e.message}");
           if (mounted) {
             _isLoadingNotifier.value = false;
+            Utils.hideLoading();
           }
         },
         codeSent: (String verificationId, int? resendToken) async {
@@ -74,6 +78,7 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
           );
           if (mounted) {
             _isLoadingNotifier.value = false;
+            Utils.hideLoading();
           }
         },
         codeAutoRetrievalTimeout: (String verificationId) {
@@ -90,6 +95,7 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
           );
           if (mounted) {
             _isLoadingNotifier.value = false;
+            Utils.hideLoading();
           }
         },
       );

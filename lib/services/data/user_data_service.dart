@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:echopay/components/utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:echopay/main.dart';
 
@@ -71,6 +72,7 @@ class UserDataService {
         codeAutoRetrievalTimeout: codeAutoRetrievalTimeout,
         timeout: const Duration(seconds: 60),
       );
+
     } catch (e) {
       print("Error initiating phone verification: $e");
       rethrow;

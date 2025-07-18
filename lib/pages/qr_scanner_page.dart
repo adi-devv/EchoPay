@@ -10,6 +10,15 @@ class QrScannerPage extends StatefulWidget {
 
 class _QrScannerPageState extends State<QrScannerPage> {
   MobileScannerController cameraController = MobileScannerController();
+  bool _isFlashOn = false; // Local state for flash
+  CameraFacing _currentCameraFacing = CameraFacing.back; // Local state for camera facing
+  bool _isDetecting = true; // Flag to prevent multiple pops
+
+  @override
+  void dispose() {
+    cameraController.dispose(); // Dispose the controller when the widget is removed
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,45 +44,52 @@ class _QrScannerPageState extends State<QrScannerPage> {
         actions: [
           IconButton(
             color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.torchState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off, color: Colors.grey);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on, color: Colors.yellow);
-                }
-              },
+            icon: Icon(
+              _isFlashOn ? Icons.flash_on : Icons.flash_off,
+              color: _isFlashOn ? Colors.yellow : Colors.grey,
             ),
-            onPressed: () => cameraController.toggleTorch(),
+            onPressed: () {
+              setState(() {
+                _isFlashOn = !_isFlashOn;
+              });
+              cameraController.toggleTorch();
+            },
           ),
           IconButton(
             color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.cameraFacingState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case CameraFacing.front:
-                    return const Icon(Icons.camera_front);
-                  case CameraFacing.back:
-                    return const Icon(Icons.camera_rear);
-                }
-              },
+            icon: Icon(
+              _currentCameraFacing == CameraFacing.front
+                  ? Icons.camera_front
+                  : Icons.camera_rear,
             ),
-            onPressed: () => cameraController.switchCamera(),
+            onPressed: () {
+              setState(() {
+                _currentCameraFacing = _currentCameraFacing == CameraFacing.front
+                    ? CameraFacing.back
+                    : CameraFacing.front;
+              });
+              cameraController.switchCamera();
+            },
           ),
         ],
       ),
       body: MobileScanner(
         controller: cameraController,
-        onDetect: (capture) {
+        onDetect: (capture) async { // Made onDetect async
+          if (!_isDetecting) return; // Prevent multiple detections/pops
+          _isDetecting = false; // Set flag to false to prevent re-entry
+
           final List<Barcode> barcodes = capture.barcodes;
           if (barcodes.isNotEmpty) {
             final String? scannedData = barcodes.first.rawValue;
             if (scannedData != null && scannedData.isNotEmpty) {
-              // Pop back to the previous screen (HomePage) with the scanned data
-              Navigator.pop(context, scannedData);
+              // Stop the camera before popping the page
+              await cameraController.stop();
+              // Add a small delay to allow camera resources to release
+              await Future.delayed(const Duration(milliseconds: 100));
+              if (mounted) { // Check if the widget is still in the tree before popping
+                Navigator.pop(context, scannedData);
+              }
             }
           }
         },
