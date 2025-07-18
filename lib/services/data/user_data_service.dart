@@ -2,16 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:echopay/main.dart';
-import 'package:echopay/pages/home_page.dart';
 
 class UserDataService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Singleton pattern
   UserDataService._internal();
 
   static final UserDataService _instance = UserDataService._internal();
@@ -38,7 +34,6 @@ class UserDataService {
     }
   }
 
-  // Helper to create user document
   Future<void> _createUserDocument(DocumentReference docRef, User user) async {
     final Map<String, dynamic> initialData = {
       'uid': user.uid,
@@ -52,5 +47,53 @@ class UserDataService {
     batch.set(docRef, initialData);
 
     await batch.commit();
+  }
+
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required Function(PhoneAuthCredential) verificationCompleted,
+    required Function(FirebaseAuthException) verificationFailed,
+    required Function(String, int?) codeSent,
+    required Function(String) codeAutoRetrievalTimeout,
+  }) async {
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: verificationCompleted,
+        verificationFailed: verificationFailed,
+        codeSent: codeSent,
+        codeAutoRetrievalTimeout: codeAutoRetrievalTimeout,
+        timeout: const Duration(seconds: 60),
+      );
+    } catch (e) {
+      print("Error initiating phone verification: $e");
+      rethrow;
+    }
+  }
+
+  Future<UserCredential?> signInWithOtp(String verificationId, String smsCode) async {
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      print("Error signing in with OTP: ${e.message}");
+      rethrow;
+    } catch (e) {
+      print("An unexpected error occurred during OTP sign-in: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      print("Error signing out: $e");
+      rethrow;
+    }
   }
 }

@@ -1,23 +1,80 @@
+import 'package:echopay/services/data/user_data_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
 
-// Placeholder for OTP verification page.
-// This page will now receive the verificationId.
-class OtpVerificationPage extends StatelessWidget {
+class OtpVerificationPage extends StatefulWidget {
   final String phoneNumber;
-  final String verificationId; // New: To pass Firebase's verification ID
+  final String verificationId;
 
   const OtpVerificationPage({
     super.key,
     required this.phoneNumber,
-    required this.verificationId, // Required now
+    required this.verificationId,
   });
+
+  @override
+  State<OtpVerificationPage> createState() => _OtpVerificationPageState();
+}
+
+class _OtpVerificationPageState extends State<OtpVerificationPage> {
+  final TextEditingController _otpController = TextEditingController();
+  final UserDataService _userDataService = UserDataService();
+  bool _isVerifying = false;
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _verifyOtp() async {
+    setState(() {
+      _isVerifying = true;
+    });
+
+    try {
+      UserCredential? userCredential = await _userDataService.signInWithOtp(
+        widget.verificationId,
+        _otpController.text.trim(),
+      );
+
+      if (userCredential?.user != null) {
+        _showMessage("OTP Verified and Signed In Successfully!");
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const PhoneSignInPage()), // Navigate back to sign-in or a new page
+              (Route<dynamic> route) => false,
+        );
+      } else {
+        _showMessage("Failed to sign in. Please try again.");
+      }
+    } on FirebaseAuthException catch (e) {
+      _showMessage("OTP Verification Failed: ${e.message}");
+      print("OTP Verification Failed: ${e.code} - ${e.message}");
+    } catch (e) {
+      _showMessage("An unexpected error occurred during OTP verification.");
+      print("Unexpected error during OTP verification: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isVerifying = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.secondary,
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         title: const Text("Verify OTP"),
       ),
       body: Center(
@@ -27,12 +84,13 @@ class OtpVerificationPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Verification code sent to $phoneNumber. Enter OTP below:",
+                "Verification code sent to ${widget.phoneNumber}. Enter OTP below:",
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 20),
               TextField(
+                controller: _otpController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: "OTP",
@@ -41,27 +99,16 @@ class OtpVerificationPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                onChanged: (otp) {
-                  // TODO: Implement OTP verification logic here
-                  // You will use this 'otp' and the 'verificationId'
-                  // to sign in with Firebase.
-                  // Example:
-                  // PhoneAuthCredential credential = PhoneAuthProvider.credential(
-                  //   verificationId: verificationId,
-                  //   smsCode: otp,
-                  // );
-                  // FirebaseAuth.instance.signInWithCredential(credential);
-                },
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
+                ],
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  // In a real app, you'd trigger the verification here
-                  // based on the entered OTP.
-                  print("Verify OTP button pressed for $phoneNumber with ID: $verificationId");
-                  // For now, just pop to simulate completion
-                  Navigator.pop(context);
-                },
+              _isVerifying
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                onPressed: _verifyOtp,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
@@ -94,9 +141,10 @@ class PhoneSignInPage extends StatefulWidget {
 }
 
 class _PhoneSignInPageState extends State<PhoneSignInPage> {
-  final TextEditingController _countryCodeController = TextEditingController(text: '+91'); // Default to +91
+  final TextEditingController _countryCodeController = TextEditingController(text: '+91');
   final TextEditingController _phoneController = TextEditingController();
-  bool _isLoading = false; // To show loading state on button
+  bool _isLoading = false;
+  final UserDataService _userDataService = UserDataService();
 
   @override
   void dispose() {
@@ -105,23 +153,19 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
     super.dispose();
   }
 
-  // Function to show a simple message (instead of alert)
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
-  // Firebase Phone Verification Logic
   Future<void> _verifyPhoneNumber() async {
     setState(() {
-      _isLoading = true; // Show loading indicator
+      _isLoading = true;
     });
 
-    // Combine country code and phone number for E.164 format
     String fullPhoneNumber = _countryCodeController.text.trim() + _phoneController.text.trim();
 
-    // Basic validation
     if (!fullPhoneNumber.startsWith('+') || fullPhoneNumber.length < 10) {
       _showMessage("Please enter a valid phone number including country code (e.g., +919876543210).");
       setState(() {
@@ -131,44 +175,26 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
     }
 
     try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
+      await _userDataService.verifyPhoneNumber(
         phoneNumber: fullPhoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // This callback is triggered when an SMS code is automatically retrieved (Android only)
-          // or if the phone number is already verified on the device.
           print("Verification completed: ${credential.smsCode}");
           _showMessage("Phone number automatically verified!");
-          // You can sign in the user directly here
-          // await FirebaseAuth.instance.signInWithCredential(credential);
-          // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage())); // Navigate to home
+          if (mounted) {
+            setState(() { _isLoading = false; });
+          }
         },
         verificationFailed: (FirebaseAuthException e) {
-          // Handle verification failures (e.g., invalid phone number, quota exceeded)
           print("Verification failed: ${e.message}");
           _showMessage("Verification failed: ${e.message}");
+          if (mounted) {
+            setState(() { _isLoading = false; });
+          }
         },
         codeSent: (String verificationId, int? resendToken) async {
-          // This callback is triggered when the SMS code is sent to the user's phone.
           print("Code sent to $fullPhoneNumber. Verification ID: $verificationId");
           _showMessage("Verification code sent to your phone!");
 
-          // Navigate to the OTP verification page, passing the verificationId
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OtpVerificationPage(
-                phoneNumber: fullPhoneNumber,
-                verificationId: verificationId, // Pass the ID
-              ),
-            ),
-          );
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          // This callback is triggered when the SMS code auto-retrieval times out.
-          print("Auto-retrieval timeout for ID: $verificationId");
-          _showMessage("SMS auto-retrieval timed out. Please enter code manually.");
-          // You might still want to navigate to OTP page here,
-          // as the user will need to manually enter the code.
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -178,16 +204,36 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
               ),
             ),
           );
+          if (mounted) {
+            setState(() { _isLoading = false; });
+          }
         },
-        timeout: const Duration(seconds: 60), // Optional: set a timeout for SMS delivery
+        codeAutoRetrievalTimeout: (String verificationId) {
+          print("Auto-retrieval timeout for ID: $verificationId");
+          _showMessage("SMS auto-retrieval timed out. Please enter code manually.");
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OtpVerificationPage(
+                phoneNumber: fullPhoneNumber,
+                verificationId: verificationId,
+              ),
+            ),
+          );
+          if (mounted) {
+            setState(() { _isLoading = false; });
+          }
+        },
       );
     } catch (e) {
       print("Error during phone verification: $e");
       _showMessage("An unexpected error occurred. Please try again.");
     } finally {
-      setState(() {
-        _isLoading = false; // Hide loading indicator
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -214,9 +260,8 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
             const SizedBox(height: 30),
             Row(
               children: [
-                // Country Code Input
                 SizedBox(
-                  width: 80, // Adjust width as needed
+                  width: 80,
                   child: TextField(
                     controller: _countryCodeController,
                     keyboardType: TextInputType.phone,
@@ -236,12 +281,11 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
                       fillColor: Colors.white,
                     ),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\+?[0-9]*')), // Allow + and digits
+                      FilteringTextInputFormatter.allow(RegExp(r'^\+?[0-9]*')),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Phone Number Input
                 Expanded(
                   child: TextField(
                     controller: _phoneController,
@@ -257,7 +301,7 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                        borderSide: BorderSide(color: Colors.tealAccent.shade700, width: 2),
                       ),
                       prefixIcon: const Icon(Icons.phone, color: Colors.grey),
                       filled: true,
@@ -280,8 +324,7 @@ class _PhoneSignInPageState extends State<PhoneSignInPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                backgroundColor: Theme.of(context).colorScheme.tertiary,
-                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.onPrimary,
               ),
               child: const Text(
                 "Send Verification Code",
