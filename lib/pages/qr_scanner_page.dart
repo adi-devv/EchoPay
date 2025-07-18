@@ -10,13 +10,13 @@ class QrScannerPage extends StatefulWidget {
 
 class _QrScannerPageState extends State<QrScannerPage> {
   MobileScannerController cameraController = MobileScannerController();
-  bool _isFlashOn = false; // Local state for flash
-  CameraFacing _currentCameraFacing = CameraFacing.back; // Local state for camera facing
-  bool _isDetecting = true; // Flag to prevent multiple pops
+  bool _isFlashOn = false;
+  CameraFacing _currentCameraFacing = CameraFacing.back;
+  bool _isDetecting = true;
 
   @override
   void dispose() {
-    cameraController.dispose(); // Dispose the controller when the widget is removed
+    cameraController.dispose();
     super.dispose();
   }
 
@@ -75,19 +75,17 @@ class _QrScannerPageState extends State<QrScannerPage> {
       ),
       body: MobileScanner(
         controller: cameraController,
-        onDetect: (capture) async { // Made onDetect async
-          if (!_isDetecting) return; // Prevent multiple detections/pops
-          _isDetecting = false; // Set flag to false to prevent re-entry
+        onDetect: (capture) async {
+          if (!_isDetecting) return;
+          _isDetecting = false;
 
           final List<Barcode> barcodes = capture.barcodes;
           if (barcodes.isNotEmpty) {
             final String? scannedData = barcodes.first.rawValue;
             if (scannedData != null && scannedData.isNotEmpty) {
-              // Stop the camera before popping the page
               await cameraController.stop();
-              // Add a small delay to allow camera resources to release
               await Future.delayed(const Duration(milliseconds: 100));
-              if (mounted) { // Check if the widget is still in the tree before popping
+              if (mounted) {
                 Navigator.pop(context, scannedData);
               }
             }

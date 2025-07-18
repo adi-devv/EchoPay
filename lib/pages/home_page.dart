@@ -47,6 +47,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     final List<Color> fullGradientColors = [
