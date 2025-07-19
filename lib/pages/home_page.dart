@@ -93,10 +93,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Theme
-          .of(context)
-          .colorScheme
-          .tertiary,
+      backgroundColor: Theme.of(context).colorScheme.tertiary,
       drawer: const MyDrawer(),
       appBar: AppBar(
         title: const Text(
@@ -141,15 +138,19 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.all(25),
                       width: 320,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        gradient: LinearGradient(
+                          colors: [Colors.black, Colors.blueGrey[800]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -161,8 +162,8 @@ class _HomePageState extends State<HomePage> {
                           const Text(
                             'Current Balance',
                             style: TextStyle(
-                              color: Colors.white70
-                              , fontSize: 16,
+                              color: Colors.white70,
+                              fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -188,14 +189,14 @@ class _HomePageState extends State<HomePage> {
                                     style: TextStyle(color: Colors.black, fontSize: 14),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white.withOpacity(0.8),
+                                    backgroundColor: Colors.white.withValues(alpha: 0.8),
                                     // Semi-transparent white
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                     elevation: 5,
-                                    shadowColor: Colors.black.withOpacity(0.3),
+                                    shadowColor: Colors.black.withValues(alpha: 0.3),
                                   ),
                                 ),
                               ),
@@ -209,14 +210,14 @@ class _HomePageState extends State<HomePage> {
                                     style: TextStyle(color: Colors.black, fontSize: 14),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white.withOpacity(0.8),
+                                    backgroundColor: Colors.white.withValues(alpha: 0.8),
                                     // Semi-transparent white
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                     elevation: 5,
-                                    shadowColor: Colors.black.withOpacity(0.3),
+                                    shadowColor: Colors.black.withValues(alpha: 0.3),
                                   ),
                                 ),
                               ),
@@ -237,7 +238,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 5,
                         offset: const Offset(0, 3),
                       ),
@@ -273,7 +274,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 5,
                         offset: const Offset(0, 3),
                       ),
