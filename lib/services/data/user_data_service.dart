@@ -44,9 +44,10 @@ class UserDataService {
       'uid': user.uid,
       'email': user.email,
       'name': user.displayName,
-      'createdAt': FieldValue.serverTimestamp(),
       'echoID': '$userNum@echopay',
+      'balance': 0,
       'phone': user.phoneNumber,
+      'createdAt': FieldValue.serverTimestamp(),
     };
 
     cachedUserData = initialData;
@@ -72,7 +73,6 @@ class UserDataService {
         codeAutoRetrievalTimeout: codeAutoRetrievalTimeout,
         timeout: const Duration(seconds: 60),
       );
-
     } catch (e) {
       print("Error initiating phone verification: $e");
       rethrow;
@@ -92,6 +92,66 @@ class UserDataService {
       rethrow;
     } catch (e) {
       print("An unexpected error occurred during OTP sign-in: $e");
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchData() async {
+    if (cachedUserData != null) {
+      return cachedUserData;
+    }
+
+    final user = _auth.currentUser;
+    if (user == null) {
+      print("User not logged in. Cannot fetch data.");
+      return null;
+    }
+
+    final docRef = _firestore.collection('Users').doc(user.uid);
+    try {
+      final docSnapshot = await docRef.get();
+      if (docSnapshot.exists) {
+        cachedUserData = docSnapshot.data();
+        return cachedUserData;
+      } else {
+        print("User document does not exist for UID: ${user.uid}");
+        return null;
+      }
+    } catch (e) {
+      print("Error fetching user data: $e");
+      return null;
+    }
+  }
+
+  Future<void> addMoney(int amount) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      print("User not logged in.");
+      return;
+    }
+
+    final userDocRef = _firestore.collection('Users').doc(user.uid);
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        DocumentSnapshot userSnapshot = await transaction.get(userDocRef);
+
+        if (!userSnapshot.exists) {
+          throw Exception("User document does not exist!");
+        }
+
+        double currentBalance = (userSnapshot.data() as Map<String, dynamic>)['balance']?.toDouble() ?? 0.0;
+        double newBalance = currentBalance + amount;
+
+        transaction.update(userDocRef, {'balance': newBalance});
+
+        if (cachedUserData != null) {
+          cachedUserData!['balance'] = newBalance;
+        }
+      });
+      print("Successfully added $amount to balance. New balance: ${cachedUserData?['balance']}");
+    } catch (e) {
+      print("Error adding money: $e");
       rethrow;
     }
   }
