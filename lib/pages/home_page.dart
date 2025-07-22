@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:echopay/components/utils.dart';
 import 'package:echopay/pages/qr_scanner_page.dart';
 import 'package:echopay/services/data/user_data_service.dart';
 import 'package:flutter/material.dart';
@@ -39,26 +40,10 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (scannedEchoId != null && scannedEchoId.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('EchoID Detected: $scannedEchoId'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      Utils.showSnackBar(context, 'EchoID Detected: $scannedEchoId');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('QR Scan cancelled or no data detected.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      Utils.showSnackBar(context, 'QR Scan cancelled or no data detected.');
     }
-  }
-
-  void _onPayViaEchoIdPressed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pay via EchoID functionality coming soon!')),
-    );
   }
 
   void _add100Rupees() {
@@ -66,21 +51,12 @@ class _HomePageState extends State<HomePage> {
       _accountBalance += 100;
     });
     UserDataService().addMoney(100);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('₹100 added to your balance!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+
+    Utils.showSnackBar(context, '₹100 added to your balance!');
   }
 
   void _viewTransactionHistory() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Viewing Transaction History...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    Utils.showSnackBar(context, 'Viewing Transaction History...');
   }
 
   @override
@@ -281,7 +257,9 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   child: ElevatedButton.icon(
-                    onPressed: _onPayViaEchoIdPressed,
+                    onPressed: () {
+                      Utils.showSnackBar(context, 'Pay via EchoID functionality coming soon!');
+                    },
                     icon: const Icon(Icons.credit_card, size: 28),
                     label: const Text(
                       'Pay via EchoID',
